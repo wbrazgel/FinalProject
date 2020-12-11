@@ -11,7 +11,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = FALSE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -29,13 +29,245 @@ library(gganimate)
 library(gifski)
 library(patchwork)     
 library(gt)
+library(stringr)
+library(janitor)
 gs4_deauth()
 theme_set(theme_minimal())
 ```
 
 ```{r}
-CFB2019 <- read_csv("CFB2019.csv")
-
-head(CFB2019)
+CFB2019 <- read_csv("CFB2019.csv") %>% 
+  clean_names() %>% 
+  separate(team, into = c("team", "conference"), sep = "\\(|\\)") %>% 
+  separate(win_loss, into = c("wins", "losses"), sep = "-", convert = TRUE) %>%
+  mutate(win_pct = wins/games,
+         forced_tpg = turnovers_gain/games)
 ```
+
+## Introduction
+
+This data provides information on team statistics for all of the 130 FBS level college football teams in the United States. There are 145 different team statistics that can be used. This information was collected from the [NCAA Statistics website](https://www.ncaa.com/stats/football/fbs).
+
+## SEC
+
+### Offense
+
+```{r}
+#scale_color_manual(values = c("Alabama" = "990000", "Arkansas" = "CC0000", "Auburn" = "000066", "Florida" = "FF8000", "Georgia" = "000000", "Kentucky" = "0000FF", "LSU" = "660066", "Mississippi St." = "404040", "Missouri" = "FFFF33", "Ole Miss" = "3399FF", "South Carolina" = "A0A0A0", "Tennessee" = "FFB266", "Texas A&M" = "330019", "Vanderbilt" = "666600"))
+
+sec1 <- CFB2019 %>% 
+  filter(conference == "SEC") %>%
+  mutate(team = fct_reorder(team, win_pct)) %>% 
+  ggplot(aes(x = win_pct, y = team, fill = team))+
+  labs(title = "Winning Percentage", 
+       x = "", 
+       y = "")+
+  scale_fill_stata()+
+  theme(legend.position = "none")+
+  geom_col()
+
+sec2 <- CFB2019 %>% 
+  filter(conference == "SEC") %>% 
+  ggplot(aes(x = rushing_yards_per_game, y = points_per_game, color = team)) +
+  scale_color_stata()+
+  labs(title = "Rush Yards and PPG",
+       x = "",
+       y = "",
+       color = "")+
+  geom_point()+
+  theme_minimal()
+
+ggplotly(sec2)
+
+sec3 <- CFB2019 %>% 
+  filter(conference == "SEC") %>% 
+  ggplot(aes(x = pass_yards_per_game, y = points_per_game, color = team)) +
+  scale_color_stata()+
+  labs(title = "Pass Yards and PPG",
+       x = "",
+       y = "",
+       color = "")+
+  geom_point()+
+  theme_minimal()
+
+ggplotly(sec3)
+
+sec4 <- CFB2019 %>% 
+  filter(conference == "SEC",
+         win_pct > 0.50) %>%
+  mutate(team = fct_reorder(team, points_per_game)) %>% 
+  ggplot(aes(y = team, x = points_per_game, fill = team)) +
+  labs(title = "Points Per Game",
+       x = "",
+       y = "",
+       color = "",
+       shape = "")+
+  scale_fill_stata()+
+  theme(legend.position = "none")+
+  geom_col()+
+  theme_minimal()
+
+(sec1 | sec4)
+```
+
+### Defense
+
+```{r}
+#scale_color_manual(values = c("Alabama" = "990000", "Arkansas" = "CC0000", "Auburn" = "000066", "Florida" = "FF8000", "Georgia" = "000000", "Kentucky" = "0000FF", "LSU" = "660066", "Mississippi St." = "404040", "Missouri" = "FFFF33", "Ole Miss" = "3399FF", "South Carolina" = "A0A0A0", "Tennessee" = "FFB266", "Texas A&M" = "330019", "Vanderbilt" = "666600"))
+
+sec6 <- CFB2019 %>% 
+  filter(conference == "SEC",
+         win_pct > 0.50) %>% 
+  ggplot(aes(x = win_pct, y = team))+
+  scale_colour_fivethirtyeight()+
+  labs(title = "Winning Percentage", 
+       x = "", 
+       y = "")+
+  geom_col()
+
+sec7 <- CFB2019 %>% 
+  filter(conference == "SEC") %>% 
+  ggplot(aes(x = tackle_for_loss_per_game, y = avg_points_per_game_allowed, color = team)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "TFLs and PPG Allowed",
+       x = "",
+       y = "")+
+  geom_point()
+
+ggplotly(sec7)
+
+sec8 <- CFB2019 %>% 
+  filter(conference == "SEC") %>% 
+  ggplot(aes(x = forced_tpg, y = avg_points_per_game_allowed, color = team)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "Forced Turnovers and PPG Allowed",
+       x = "",
+       y = "")+
+  geom_point()
+
+ggplotly(sec8)
+
+sec9 <- CFB2019 %>% 
+  filter(conference == "SEC",
+         win_pct > 0.50) %>%
+  mutate(team = fct_rev(fct_reorder(team, avg_points_per_game_allowed))) %>% 
+  ggplot(aes(y = team, x = avg_points_per_game_allowed)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "Points Allowed Per Game",
+       x = "",
+       y = "")+
+  geom_col()
+
+sec10 <- sec6 | sec9
+
+ggplotly(sec10)
+```
+
+
+## ACC
+
+### Offense
+
+```{r}
+acc1 <- CFB2019 %>% 
+  filter(conference == "ACC",
+         win_pct > 0.50) %>% 
+  ggplot(aes(x = win_pct, y = team))+
+  scale_colour_fivethirtyeight()+
+  labs(title = "Winning Percentage", 
+       x = "", 
+       y = "")+
+  geom_col()
+
+acc2 <- CFB2019 %>% 
+  filter(conference == "ACC") %>% 
+  ggplot(aes(x = rushing_yards_per_game, y = points_per_game, color = team)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "Rush Yards and PPG",
+       x = "",
+       y = "")+
+  geom_point()
+
+ggplotly(acc2)
+
+acc3 <- CFB2019 %>% 
+  filter(conference == "ACC") %>% 
+  ggplot(aes(x = pass_yards_per_game, y = points_per_game, color = team)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "Pass Yards and PPG",
+       x = "",
+       y = "")+
+  geom_point()
+
+ggplotly(acc3)
+
+acc4 <- CFB2019 %>% 
+  filter(conference == "ACC",
+         win_pct > 0.50) %>%
+  mutate(team = fct_reorder(team, points_per_game)) %>% 
+  ggplot(aes(y = team, x = points_per_game)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "Points Per Game",
+       x = "",
+       y = "")+
+  geom_col()
+
+acc5 <- acc1 | acc4
+
+ggplotly(acc5)
+```
+
+### Defense
+
+```{r}
+acc6 <- CFB2019 %>% 
+  filter(conference == "ACC",
+         win_pct > 0.50) %>% 
+  ggplot(aes(x = win_pct, y = team))+
+  scale_colour_fivethirtyeight()+
+  labs(title = "Winning Percentage", 
+       x = "", 
+       y = "")+
+  geom_col()
+
+acc7 <- CFB2019 %>% 
+  filter(conference == "ACC") %>% 
+  ggplot(aes(x = tackle_for_loss_per_game, y = avg_points_per_game_allowed, color = team)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "TFLs and PPG Allowed",
+       x = "",
+       y = "")+
+  geom_point()
+
+ggplotly(acc7)
+
+acc8 <- CFB2019 %>% 
+  filter(conference == "ACC") %>% 
+  ggplot(aes(x = forced_tpg, y = avg_points_per_game_allowed, color = team)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "Forced Turnovers and PPG Allowed",
+       x = "",
+       y = "")+
+  geom_point()
+
+ggplotly(acc8)
+
+acc9 <- CFB2019 %>% 
+  filter(conference == "ACC",
+         win_pct > 0.50) %>%
+  mutate(team = fct_rev(fct_reorder(team, avg_points_per_game_allowed))) %>% 
+  ggplot(aes(y = team, x = avg_points_per_game_allowed)) +
+  scale_colour_fivethirtyeight()+
+  labs(title = "Points Allowed Per Game",
+       x = "",
+       y = "")+
+  geom_col()
+
+acc10 <- acc6 | acc9
+
+ggplotly(acc10)
+```
+
+
+
 
